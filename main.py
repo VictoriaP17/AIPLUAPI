@@ -14,7 +14,7 @@ import io
 import imghdr
 
 app=Flask(__name__)
-app.template_folder = 'templates'
+#app.template_folder = ''   #CHANGE TO TEMPLATES FOLDER IF NEEDED
 
 def is_image(filepath):
     image_type=imghdr.what(filepath)
@@ -31,18 +31,18 @@ def index():
     if request.method=='POST':
 
         if not request.form['txtSearchedImageId']:
-            return {"error":"No image to look for, please, enter an image ID"},400,{'Content-Type': 'application/json'}
+            return {"error":"No image to look for, please, enter an image ID"},400,servicesHeader
 
         requested_img_id=request.form['txtSearchedImageId']
         upload_directory=''   #CHANGE TO UPLOADS FOLDER
 
-        input_dir = os.path.join(upload_directory+str(requested_img_id)+".jpg")
+        input_dir = os.path.join(upload_directory,str(requested_img_id)+".jpg")
 
         if not os.path.exists(input_dir):
-            return {"error":"Could not find uploaded file, please, try again"},400,{'Content-Type': 'application/json'}
+            return {"error":"Could not find uploaded file, please, try again"},400,servicesHeader
 
         if not is_image(input_dir):
-            return {"error":"File is most likely not an image, please, upload a valid file"},400,{'Content-Type': 'application/json'}
+            return {"error":"File is most likely not an image, please, upload a valid file"},400,servicesHeader
 
 
         ws_domain=''  #CHANGE TO WS DOMAIN
@@ -55,7 +55,7 @@ def index():
         loginResponse=session.post(loginURL,headers=servicesHeader,json=loginData)
 
         if loginResponse.status_code!=200:
-            return {"error":"Could not login to WS, was login information changed?"},400,{'Content-Type': 'application/json'}
+            return {"error":"Could not login to WS, was login information changed?"},400,servicesHeader
 
         #get the id of all of the product's images
         productsURL= ws_domain+'ws/rest/com.axelor.apps.base.db.Product'
@@ -63,7 +63,7 @@ def index():
         productsResponse=session.get(productsURL)
 
         if productsResponse.status_code!=200:
-            return {"error":"Could not get products info"},400,{'Content-Type': 'application/json'}
+            return {"error":"Could not get products info"},400,servicesHeader
         
 
         product_images_ids=[]
@@ -87,7 +87,7 @@ def index():
             img_response=session.get(base_metafile_url+str(image_id)+base_metafile_endpoint)
             
             if img_response.status_code!=200:
-                return {"error":"Could not fetch image data"},400,{'Content-Type': 'application/json'}
+                return {"error":"Could not fetch image data"},400,servicesHeader
             
             image_data=io.BytesIO(img_response.content)
 
@@ -156,14 +156,14 @@ def index():
                     session.get(logoutURL)
 
                     json_response=json.dumps(predicted_product_dict,indent=4)
-                    return json_response,200,{'Content-Type': 'application/json'}
+                    return json_response,200,servicesHeader
 
         
         #logout of server
         logoutURL=ws_domain+'logout'
         session.get(logoutURL)
 
-        return {"error":"Could not find an appropriate product"},400,{'Content-Type': 'application/json'}
+        return {"error":"Could not find an appropriate product"},400,servicesHeader
 
 if __name__ =="__main__":
     app.run()
