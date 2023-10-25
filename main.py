@@ -33,19 +33,14 @@ def index():
         if not request.form['txtSearchedImageId']:
             return {"error":"No image to look for, please, enter an image ID"},400,servicesHeader
 
-        requested_img_id=request.form['txtSearchedImageId']
-        upload_directory=''   #CHANGE TO UPLOADS FOLDER
-
-        input_dir = os.path.join(upload_directory,str(requested_img_id)+".jpg")
-
-        if not os.path.exists(input_dir):
-            return {"error":"Could not find uploaded file, please, try again"},400,servicesHeader
-
-        if not is_image(input_dir):
-            return {"error":"File is most likely not an image, please, upload a valid file"},400,servicesHeader
-
-
         ws_domain=''  #CHANGE TO WS DOMAIN
+        base_metafile_url=ws_domain+'ws/rest/com.axelor.meta.db.MetaFile/'
+        base_metafile_endpoint="/content/download"
+
+        requested_img_id=request.form['txtSearchedImageId']
+
+        input_url=base_metafile_url+requested_img_id+base_metafile_endpoint
+
         session = requests.Session()
 
         #login to server
@@ -77,8 +72,6 @@ def index():
                 product_image_id=product["picture"]["id"]
                 product_images_ids.append(product_image_id)
 
-        base_metafile_url=ws_domain+'ws/rest/com.axelor.meta.db.MetaFile/'
-        base_metafile_endpoint="/content/download"
         data=np.array([],dtype=object)
         labels=[]
 
@@ -122,7 +115,18 @@ def index():
             loaded_classifier = pickle.load(f)
 
         searched_img_data=[]
-        searched_img=imread(input_dir)
+        print(input_url)
+        searched_img_response=session.get(input_url)
+        
+        if searched_img_response.status_code!=200:
+            return {"error":"Could not fetch uploaded image data"},400,servicesHeader
+        
+        try:
+            searched_img_response_data=io.BytesIO(searched_img_response.content)
+            searched_img=imread(searched_img_response_data)
+        except:
+            return {"error":"Uploaded file was most likely not an image, please, uploade a valid image file"},400,servicesHeader
+        #searched_img=imread(input_dir)
 
         searched_img=resize(searched_img,(15,15))
 
@@ -146,6 +150,7 @@ def index():
                 if predicted_image_id==current_image_id:
                     predicted_product_dict['data']['id']=product.get('id')
                     predicted_product_dict['data']['name']=product.get('name')
+                    predicted_product_dict['data']['code']=product.get('code')
                     if product.get("unit") is not None:
                         predicted_product_dict['data']['unit']=product.get('unit')
                     if product.get("salePrice") is not None:
@@ -156,6 +161,7 @@ def index():
                     session.get(logoutURL)
 
                     json_response=json.dumps(predicted_product_dict,indent=4)
+                    print(json_response)
                     return json_response,200,servicesHeader
 
         
