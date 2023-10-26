@@ -125,7 +125,7 @@ def index():
         metaFile_data=metaFile_info_dict["data"]  
         metaFile_data_dict=metaFile_data[0]    
         if metaFile_data_dict["fileType"] not in allowed_img_formats:
-            return {"error":"Could not fetch uploaded image data: 1"},400,servicesHeader
+            return {"error":"Uploaded file was most likely not an image, please, uploade a valid image file: 2"},400,servicesHeader
 
         searched_img_data=[]
         searched_img_response=session.get(input_url)
