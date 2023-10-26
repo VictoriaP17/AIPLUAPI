@@ -2,7 +2,6 @@
 YM
 
 Important to change:
-- upload_folder
 - ws_domain
 - username and password
 
