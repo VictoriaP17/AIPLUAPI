@@ -23,7 +23,7 @@ def is_image(filepath):
 
 servicesHeader={"Content-Type":"application/json"}
 
-@app.route('/webservices/json', methods=['GET','POST'])
+@app.route('/webservices/json/', methods=['GET','POST'])
 def index():
     if request.method=='GET':
         return render_template('index.html')
@@ -39,6 +39,7 @@ def index():
 
         requested_img_id=request.form['txtSearchedImageId']
 
+        base_input_url=base_metafile_url+requested_img_id
         input_url=base_metafile_url+requested_img_id+base_metafile_endpoint
 
         session = requests.Session()
@@ -76,7 +77,6 @@ def index():
         labels=[]
 
         for image_id in product_images_ids:
-            print(base_metafile_url+str(image_id)+base_metafile_endpoint)
             img_response=session.get(base_metafile_url+str(image_id)+base_metafile_endpoint)
             
             if img_response.status_code!=200:
@@ -108,25 +108,36 @@ def index():
         best_estimator = grid_search.best_estimator_
         y_prediction = best_estimator.predict(x_test)
         score = accuracy_score(y_prediction, y_test)
-        print('{}% of samples were correctly classified'.format(score * 100))
         pickle.dump(best_estimator, open('./model.p','wb'))
 
         with open ('./model.p','rb') as f:
             loaded_classifier = pickle.load(f)
 
+
+        img_type_response=session.get(base_input_url)
+
+        if img_type_response.status_code!=200:
+            return {"error":"Could not fetch uploaded image data: 1"},400,servicesHeader
+        
+
+        allowed_img_formats=("image/jpeg","image/png")
+        metaFile_info_dict=json.loads(img_type_response.text)
+        metaFile_data=metaFile_info_dict["data"]  
+        metaFile_data_dict=metaFile_data[0]    
+        if metaFile_data_dict["fileType"] not in allowed_img_formats:
+            return {"error":"Could not fetch uploaded image data: 1"},400,servicesHeader
+
         searched_img_data=[]
-        print(input_url)
         searched_img_response=session.get(input_url)
         
         if searched_img_response.status_code!=200:
-            return {"error":"Could not fetch uploaded image data"},400,servicesHeader
+            return {"error":"Could not fetch uploaded image data: 2"},400,servicesHeader
         
         try:
             searched_img_response_data=io.BytesIO(searched_img_response.content)
             searched_img=imread(searched_img_response_data)
         except:
-            return {"error":"Uploaded file was most likely not an image, please, uploade a valid image file"},400,servicesHeader
-        #searched_img=imread(input_dir)
+            return {"error":"Uploaded file was most likely not an image, please, uploade a valid image file: 2"},400,servicesHeader
 
         searched_img=resize(searched_img,(15,15))
 
@@ -161,7 +172,6 @@ def index():
                     session.get(logoutURL)
 
                     json_response=json.dumps(predicted_product_dict,indent=4)
-                    print(json_response)
                     return json_response,200,servicesHeader
 
         
