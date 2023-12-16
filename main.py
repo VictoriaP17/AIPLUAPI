@@ -138,8 +138,8 @@ def index():
     
         existingProducts = getExistingProductsIDs(productsResponse.text)
         
-
-        data=np.array([],dtype=object)
+        #Reading existing images in DB
+        data=[]
         labels=[]
 
         for image_id in existingProducts.product_images_ids:
@@ -150,13 +150,14 @@ def index():
             
             image_data=io.BytesIO(img_response.content)
 
-            img=imread(image_data)
-            img=resize(img,(15,15,3))
+            img=imread(image_data,as_gray=True)
+            img=resize(img,(15,15))
+            
             for i in range(10):
-                data=np.append(data,img.flatten())
+                data.append(img.flatten())
                 labels.append(image_id)
             
-        data = data.reshape(-1,15,15,3)
+        data = np.asarray(data)
         labels=np.asarray(labels)
 
         best_estimator = createEstimator(data,labels)
@@ -186,8 +187,10 @@ def index():
 
         try:
             searched_img_response_data=io.BytesIO(searched_img_response.content)
-            searched_img=imread(searched_img_response_data)
-        except:
+            searched_img=imread(searched_img_response_data,as_gray=True)
+            searched_img=resize(searched_img,(15,15))
+
+        except Exception as e:
             return {"error":"Uploaded file was most likely not an image, please, uploade a valid image file: 2"},400,servicesHeader
         
 
